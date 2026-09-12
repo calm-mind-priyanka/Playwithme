@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 
 # --- CONFIGURATION ---
 TELEGRAM_BOT_TOKEN = "8071698760:AAFAqbIQM4gqbscPzDbLeBhYG69XzkESsmg"
-MONGO_URI = "mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority"
+MONGO_URI = "mongodb+srv://Vivekchaun24_23:SPNaSnJhXQ39ZMtg@cluster0.74vyoq2.mongodb.net/?appName=Cluster0"
 WEBAPP_URL = os.getenv("WEBAPP_URL", "https://your-koyeb-app-name.koyeb.app")
 
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
