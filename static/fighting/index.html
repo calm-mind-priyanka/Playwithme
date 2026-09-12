@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Core Breaker - Fighter</title>
+    <style>
+        body { margin: 0; background: #05050a; overflow: hidden; font-family: monospace; color: #00ff66; text-align: center; user-select: none; }
+        canvas { background: #120b1a; display: block; margin: 0 auto; border-bottom: 2px solid #00ff66; }
+        #ui { padding: 10px; font-size: 18px; font-weight: bold; }
+        .btn-container { margin-top: 10px; display: flex; justify-content: center; gap: 10px; }
+        button { background: #00ff66; border: none; padding: 14px 24px; font-weight: bold; cursor: pointer; border-radius: 5px; color: #05050a; }
+    </style>
+</head>
+<body>
+    <div id="ui">COMBO: <span id="comboVal">0</span> | HEALTH: <span id="hpVal">❤️❤️❤️</span></div>
+    <canvas id="gameCanvas" width="360" height="320"></canvas>
+    <div class="btn-container">
+        <button onclick="attack('left')">⬅️ LEFT STRIKE</button>
+        <button onclick="attack('right')">RIGHT STRIKE ➡️</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        let combo = 0, hp = 3, isGameOver = false;
+        let enemy = { side: 'left', x: 50, timer: 100 };
+
+        function spawnEnemy() {
+            if (isGameOver) return;
+            enemy.side = Math.random() < 0.5 ? 'left' : 'right';
+            enemy.x = enemy.side === 'left' ? 60 : 300;
+            enemy.timer = Math.max(35, 90 - (combo * 2));
+        }
+
+        function attack(direction) {
+            if (isGameOver) return;
+            if (direction === enemy.side) {
+                combo++;
+                document.getElementById("comboVal").innerText = combo;
+                spawnEnemy();
+            } else {
+                hp--;
+                updateHP();
+                if (hp <= 0) gameOver();
+            }
+        }
+
+        function updateHP() {
+            document.getElementById("hpVal").innerText = "❤️".repeat(hp);
+        }
+
+        function update() {
+            if (isGameOver) return;
+            enemy.timer--;
+            if (enemy.timer <= 0) {
+                hp--;
+                updateHP();
+                if (hp <= 0) gameOver();
+                else spawnEnemy();
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.shadowBlur = 15; ctx.shadowColor = "#00ff66"; ctx.fillStyle = "#00ff66";
+            ctx.fillRect(170, 240, 20, 40);
+
+            ctx.shadowColor = "#ff0055"; ctx.fillStyle = "#ff0055";
+            ctx.fillRect(enemy.x - 10, 240, 20, 40);
+
+            ctx.fillStyle = "#ffff00";
+            ctx.fillRect(40, 30, enemy.timer * 3.1, 8);
+            ctx.shadowBlur = 0;
+        }
+
+        function loop() {
+            update(); draw();
+            if (!isGameOver) requestAnimationFrame(loop);
+        }
+
+        function gameOver() {
+            isGameOver = true;
+            alert("Knockout! Final Combo: " + combo);
+            fetch('/api/save-score', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: 12345, game: 'fighting', score: combo })
+            });
+        }
+
+        spawnEnemy();
+        loop();
+    </script>
+</body>
+</html>
