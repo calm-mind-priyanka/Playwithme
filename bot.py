@@ -9,7 +9,7 @@ from pymongo import MongoClient
 logging.basicConfig(level=logging.INFO)
 
 # --- CONFIGURATION ---
-TELEGRAM_BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN_HERE"
+TELEGRAM_BOT_TOKEN = "8071698760:AAFAqbIQM4gqbscPzDbLeBhYG69XzkESsmg"
 MONGO_URI = "mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority"
 WEBAPP_URL = os.getenv("WEBAPP_URL", "https://your-koyeb-app-name.koyeb.app")
 
