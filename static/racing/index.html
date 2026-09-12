@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Drift - Racing</title>
+    <style>
+        body { margin: 0; background: #05050a; overflow: hidden; font-family: monospace; color: #ff0055; text-align: center; user-select: none; }
+        canvas { background: #111122; display: block; margin: 0 auto; border-bottom: 2px solid #00ffff; }
+        #ui { padding: 10px; font-size: 18px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="ui">SCORE: <span id="scoreVal">0</span> | SPEED: 140 KM/H</div>
+    <canvas id="gameCanvas" width="360" height="500"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        let score = 0, isGameOver = false;
+        let car = { x: 180, y: 400, width: 30, height: 50 };
+        let obstacles = [];
+
+        window.addEventListener("mousemove", (e) => {
+            let rect = canvas.getBoundingClientRect();
+            car.x = e.clientX - rect.left - car.width / 2;
+        });
+        window.addEventListener("touchmove", (e) => {
+            let rect = canvas.getBoundingClientRect();
+            car.x = e.touches[0].clientX - rect.left - car.width / 2;
+        });
+
+        function update() {
+            if (isGameOver) return;
+            score += 1;
+            document.getElementById("scoreVal").innerText = score;
+
+            if (Math.random() < 0.025) {
+                let lanes = [60, 165, 270];
+                obstacles.push({ x: lanes[Math.floor(Math.random() * lanes.length)], y: -60, width: 30, height: 50 });
+            }
+
+            obstacles.forEach((obs, index) => {
+                obs.y += 5;
+                if (car.x < obs.x + obs.width && car.x + car.width > obs.x && car.y < obs.y + obs.height && car.y + car.height > obs.y) {
+                    gameOver();
+                }
+                if (obs.y > canvas.height) obstacles.splice(index, 1);
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = "#444466"; ctx.lineWidth = 4; ctx.setLineDash([20, 20]);
+            ctx.beginPath(); ctx.moveTo(120, 0); ctx.lineTo(120, canvas.height); ctx.moveTo(240, 0); ctx.lineTo(240, canvas.height); ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.shadowBlur = 15; ctx.shadowColor = "#ff0055"; ctx.fillStyle = "#ff0055";
+            ctx.fillRect(car.x, car.y, car.width, car.height);
+
+            ctx.shadowColor = "#00ffff"; ctx.fillStyle = "#00ffff";
+            obstacles.forEach(obs => ctx.fillRect(obs.x, obs.y, obs.width, obs.height));
+            ctx.shadowBlur = 0;
+        }
+
+        function loop() {
+            update(); draw();
+            if (!isGameOver) requestAnimationFrame(loop);
+        }
+
+        function gameOver() {
+            isGameOver = true;
+            alert("Crash! Final Score: " + score);
+            fetch('/api/save-score', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: 12345, game: 'racing', score: score })
+            });
+        }
+
+        loop();
+    </script>
+</body>
+</html>
