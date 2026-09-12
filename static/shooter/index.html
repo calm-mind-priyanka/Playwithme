@@ -37,7 +37,51 @@
 
     <canvas id="gameCanvas" width="360" height="560"></canvas>
 
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
+        const tg = window.Telegram && window.Telegram.WebApp;
+        let gameSessionId = null;
+        let gameReady = false;
+        let scoreSubmitted = false;
+
+        async function startSecureGame(game) {
+            if (!tg || !tg.initData) {
+                throw new Error("Open this game from the Telegram bot.");
+            }
+            tg.ready();
+            tg.expand();
+            if (tg.BackButton) { if (tg.BackButton.offClick) tg.BackButton.offClick(() => tg.close()); tg.BackButton.show(); tg.BackButton.onClick(() => tg.close()); }
+            const res = await fetch('/api/game/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Telegram-Init-Data': tg.initData
+                },
+                body: JSON.stringify({ game })
+            });
+            const data = await res.json();
+            if (!res.ok || data.status !== 'success') throw new Error(data.message || 'Unable to start game');
+            gameSessionId = data.session_id;
+            gameReady = true;
+            scoreSubmitted = false;
+            return data;
+        }
+
+        async function saveSecureScore(game, score) {
+            if (!gameSessionId || scoreSubmitted) return { status: 'error', message: scoreSubmitted ? 'Score already submitted' : 'No active game session' };
+            const res = await fetch('/api/save-score', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Telegram-Init-Data': tg.initData
+                },
+                body: JSON.stringify({ session_id: gameSessionId, game, score })
+            });
+            const data = await res.json();
+            if (res.ok && data.status === 'success') scoreSubmitted = true;
+            return data;
+        }
+
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
         
@@ -61,7 +105,10 @@
             if (isPlaying) bullets.push({ x: player.x, y: player.y - 10, speed: 9 });
         });
 
-        function startGame() {
+        async function startGame() {
+            try {
+                await startSecureGame('shooter');
+            } catch (err) { alert(err.message || 'Unable to start game'); return; }
             score = 0; level = 1;
             bullets = []; enemies = []; particles = [];
             document.getElementById("scoreVal").innerText = score;
@@ -78,7 +125,7 @@
         }
 
         function update() {
-            if (!isPlaying) return;
+            if (!isPlaying || !gameReady) return;
 
             stars.forEach(s => { s.y += s.speed; if (s.y > canvas.height) s.y = 0; });
 
@@ -154,11 +201,7 @@
             document.getElementById("finalScore").innerText = score;
             document.getElementById("gameOverScreen").classList.remove("hidden");
 
-            fetch('/api/save-score', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: 12345, game: 'shooter', score: score })
-            });
+            saveSecureScore('shooter', score).then(result => { if (result.status !== 'success') console.warn('Score was not saved:', result.message); });
         }
 
         function challengeFriend() {
